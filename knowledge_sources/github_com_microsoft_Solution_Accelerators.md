@@ -1,0 +1,19 @@
+# GitHub - microsoft/Solution-Accelerators
+
+**Source:** [https://github.com/microsoft/Solution-Accelerators](https://github.com/microsoft/Solution-Accelerators)
+
+**Scraped:** 2026-01-21T14:17:43.974976
+
+**Metadata:**
+- Characters: 1539
+- Words: 218
+
+---
+
+## Content
+
+microsoft / Solution-Accelerators Public Notifications You must be signed in to change notification settings Fork 33 Star 143 License MIT license 143 stars 33 forks Branches Tags Activity Star Notifications You must be signed in to change notification settings microsoft/Solution-Accelerators main Branches Tags Go to file Code Open more actions menu Folders and files Name Name Last commit message Last commit date Latest commit History 86 Commits .github/ workflows .github/ workflows code code CNAME CNAME CODE_OF_CONDUCT.md CODE_OF_CONDUCT.md LICENSE LICENSE README.md README.md SECURITY.md SECURITY.md SUPPORT.md SUPPORT.md package-lock.json package-lock.json solution-accelerator-header.jpg solution-accelerator-header.jpg View all files Repository files navigation 🐙 Website upgraded and relocated Slide on over to our new site for a better, brighter experience. Visit https://accelerators.ms to see a full list of our solution accelerators. About No description, website, or topics provided. Resources Readme License MIT license Code of conduct Code of conduct Security policy Security policy Uh oh! There was an error while loading. Please reload this page . Activity Custom properties Stars 143 stars Watchers 8 watching Forks 33 forks Report repository Releases No releases published Packages 0 No packages published Uh oh! There was an error while loading. Please reload this page . Contributors 7 Uh oh! There was an error while loading. Please reload this page . Languages TypeScript 84.1% CSS 13.6% JavaScript 1.6% HTML 0.7%
+
+---
+
+*This document was automatically converted from scraped web content for use in AI Foundry knowledge bases.*

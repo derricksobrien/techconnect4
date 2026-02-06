@@ -37,7 +37,7 @@ def create_rag_system():
         
         openai_client = AzureOpenAI(
             api_key=openai_api_key,
-            api_version="2024-05-01-preview",
+            api_version="2024-12-01-preview",
             azure_endpoint=openai_endpoint
         )
         
@@ -82,7 +82,15 @@ Content: {result.get('content', '')[:500]}..."""
     return "\n\n".join(context_parts)
 
 
-def query_with_rag(rag_system, user_question: str, deployment_name: str = "gpt-4-turbo") -> str:
+def query_with_rag(
+    rag_system, 
+    user_question: str, 
+    deployment_name: str = "gpt4-1",
+    system_prompt: str = None,
+    temperature: float = 0.7,
+    max_tokens: int = 2000,
+    top_k: int = 5
+) -> dict:
     """
     Answer a question using RAG (Retrieval-Augmented Generation).
     
@@ -95,10 +103,17 @@ def query_with_rag(rag_system, user_question: str, deployment_name: str = "gpt-4
     Args:
         rag_system: Dictionary with clients
         user_question: User's question
-        deployment_name: Azure OpenAI deployment name
+        deployment_name: Azure OpenAI deployment name (default: "gpt4-1")
+        system_prompt: Custom system prompt. If None, uses default.
+        temperature: LLM temperature (0.0-2.0, default: 0.7)
+        max_tokens: Max tokens in response (default: 2000)
+        top_k: Number of search results to use as context (default: 5)
     
     Returns:
-        LLM response grounded in indexed data
+        Dictionary with:
+            - answer: LLM response grounded in indexed data
+            - context: Retrieved documents used as context
+            - metadata: Search and generation metadata
     """
     
     search_manager = rag_system["search"]
@@ -106,18 +121,26 @@ def query_with_rag(rag_system, user_question: str, deployment_name: str = "gpt-4
     
     # Step 1: Search for relevant context
     print("[*] Searching for relevant documents...")
-    context = search_documents(rag_system, user_question, top=5)
+    context = search_documents(rag_system, user_question, top=top_k)
     
     # Step 2: Create system prompt with context
-    system_prompt = f"""You are a helpful assistant specializing in Microsoft Solution Accelerators.
-    
+    if system_prompt is None:
+        system_prompt = f"""You are an expert assistant specializing in Microsoft Solution Accelerators and Azure technologies.
+
 You have access to the following documents:
 
 {context}
 
-When answering questions, prioritize information from these documents.
-If the documents don't contain relevant information, say so explicitly.
-Always cite your sources when using information from the documents."""
+Instructions:
+- Prioritize information from these documents when answering
+- If documents contain relevant information, cite sources explicitly (include URL)
+- If documents don't contain information needed to answer, say so
+- Provide clear, actionable guidance based on the documents
+- Use professional language and structure responses logically
+- Be concise but comprehensive"""
+    else:
+        # Inject context into custom prompt
+        system_prompt = system_prompt.format(context=context) if "{context}" in system_prompt else system_prompt
     
     # Step 3: Send to LLM
     print("[*] Getting LLM response...")
@@ -130,15 +153,24 @@ Always cite your sources when using information from the documents."""
     response = openai_client.chat.completions.create(
         model=deployment_name,
         messages=messages,
-        temperature=0.7,
-        max_tokens=1000
+        temperature=temperature,
+        max_tokens=max_tokens
     )
     
-    return response.choices[0].message.content
+    return {
+        "answer": response.choices[0].message.content,
+        "context": context,
+        "metadata": {
+            "deployment": deployment_name,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "top_k_documents": top_k
+        }
+    }
 
 
 def main():
-    """Example usage."""
+    """Example usage with custom system prompts."""
     
     print("=" * 70)
     print("Azure OpenAI + Azure AI Search RAG Demo")
@@ -152,11 +184,11 @@ def main():
     if not rag_system:
         print("[!] Failed to initialize RAG system")
         print("\nTo enable RAG with Azure OpenAI:")
-        print("1. Create Azure OpenAI resource")
-        print("2. Deploy GPT-4 model")
-        print("3. Set environment variables:")
-        print("   $env:AZURE_OPENAI_ENDPOINT = 'https://your-resource.openai.azure.com/'")
+        print("1. Set environment variables:")
+        print("   $env:AZURE_OPENAI_ENDPOINT = 'https://dcsinstance.openai.azure.com/'")
         print("   $env:AZURE_OPENAI_API_KEY = 'your-api-key'")
+        print("   $env:AZURE_SEARCH_ENDPOINT = 'https://your-search.search.windows.net'")
+        print("2. Deploy GPT-4 model in Azure OpenAI")
         return
     
     print("[+] RAG system initialized")
@@ -188,24 +220,46 @@ def main():
     print(f"Question: {question}")
     print()
     
+    # Optional: Define a custom system prompt
+    custom_prompt = """You are a technical advisor for enterprise Azure solutions.
+
+Available documents:
+{context}
+
+Your role:
+- Answer questions based on the documents provided
+- Cite sources (URLs) when using information
+- Explain concepts clearly for enterprise architects
+- Suggest next steps when relevant
+- Flag any missing information that would be helpful"""
+    
     try:
-        # Get RAG response
-        answer = query_with_rag(rag_system, question)
+        # Get RAG response with custom settings
+        result = query_with_rag(
+            rag_system, 
+            question,
+            deployment_name="gpt4-1",
+            system_prompt=custom_prompt,
+            temperature=0.7,
+            max_tokens=2000,
+            top_k=5
+        )
         
         print("Answer:")
         print("-" * 70)
-        print(answer)
+        print(result["answer"])
         print("-" * 70)
         print()
         print("[+] Response grounded in indexed documents from Azure AI Search")
+        print(f"[+] Retrieved {result['metadata']['top_k_documents']} relevant documents")
     
     except Exception as e:
         print(f"[!] Error: {e}")
         print()
         print("Troubleshooting:")
-        print("  1. Check Azure OpenAI is deployed: az cognitiveservices account deployment list ...")
-        print("  2. Verify API version is correct (2024-05-01-preview)")
-        print("  3. Check deployment name matches your model")
+        print("  1. Verify Azure Search index is populated: python demo.py")
+        print("  2. Check deployment name (should be 'gpt4-1')")
+        print("  3. Ensure all environment variables are set")
 
 
 if __name__ == "__main__":
